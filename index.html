@@ -6,250 +6,7 @@
     <title>E-Com Video Engine v2.5 (Complete)</title>
     <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
     <style>
-        :root {
-            --bg-color: #1e1e1e;
-            --text-color: #e0e0e0;
-            --panel-bg: #2a2a2a;
-            --secondary-bg: #3c3c3c;
-            --border-color: #555;
-            --primary-accent: #4a90e2;
-            --success-color: #28a745;
-            --error-color: #dc3545;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin: 0;
-            padding: 20px;
-            min-height: 100vh;
-        }
-        
-        .main-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            width: 100%;
-            max-width: 1200px;
-            justify-content: center;
-        }
-        
-        .input-panel {
-            flex: 1;
-            min-width: 450px;
-            background-color: var(--panel-bg);
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-        }
-        
-        .preview-panel {
-            flex: 1;
-            min-width: 400px;
-            background-color: var(--panel-bg);
-            border-radius: 10px;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-            display: flex;
-            flex-direction: column;
-        }
-        
-        h1, h2, h3 {
-            color: var(--primary-accent);
-            margin-top: 0;
-        }
-        
-        .scene-group {
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        
-        input[type="text"], select {
-            width: 100%;
-            padding: 10px;
-            box-sizing: border-box;
-            background-color: var(--secondary-bg);
-            color: var(--text-color);
-            border: 1px solid var(--border-color);
-            border-radius: 5px;
-            margin-bottom: 10px;
-        }
-        
-        .media-buttons {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        
-        .file-label {
-            flex: 1;
-            display: block;
-            padding: 10px;
-            background-color: var(--secondary-bg);
-            border: 1px dashed var(--border-color);
-            color: var(--text-color);
-            border-radius: 5px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .file-label:hover {
-            background-color: #4a4a4a;
-        }
-        
-        .file-label.uploaded {
-            background-color: var(--success-color);
-            color: white;
-            border-style: solid;
-            font-weight: bold;
-        }
-        
-        input[type="file"] {
-            display: none;
-        }
-        
-        #generate-button {
-            width: 100%;
-            padding: 15px;
-            font-size: 1.2em;
-            font-weight: bold;
-            background-color: var(--success-color);
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            margin-top: 20px;
-        }
-        
-        #generate-button:hover {
-            background-color: #218838;
-        }
-        
-        #generate-button:disabled {
-            background-color: #6c757d;
-            cursor: not-allowed;
-        }
-        
-        #output-video {
-            max-width: 100%;
-            border-radius: 8px;
-            margin-top: 15px;
-            background-color: #000;
-            flex-grow: 1;
-        }
-        
-        #progress-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.8);
-            color: white;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            z-index: 1000;
-            text-align: center;
-        }
-        
-        #progress-text {
-            font-size: 1.5em;
-            margin-bottom: 20px;
-        }
-        
-        .loader {
-            border: 8px solid #f3f3f3;
-            border-radius: 50%;
-            border-top: 8px solid var(--primary-accent);
-            width: 60px;
-            height: 60px;
-            animation: spin 2s linear infinite;
-            margin-bottom: 20px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        #progress-bar-container {
-            width: 80%;
-            max-width: 500px;
-            height: 20px;
-            background-color: #555;
-            border-radius: 10px;
-            overflow: hidden;
-            display: none;
-        }
-        
-        #progress-bar-fill {
-            width: 0%;
-            height: 100%;
-            background-color: var(--primary-accent);
-            border-radius: 10px;
-            transition: width 0.2s ease-out;
-        }
-        
-        #progress-percentage {
-            margin-top: 10px;
-            font-size: 1.2em;
-            font-weight: bold;
-            display: none;
-        }
-        
-        .error-message {
-            color: var(--error-color);
-            font-weight: bold;
-            margin-top: 10px;
-            display: none;
-        }
-        
-        .instructions {
-            background-color: var(--secondary-bg);
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 0.9em;
-        }
-        
-        .instructions ul {
-            text-align: left;
-            margin: 10px 0;
-            padding-left: 20px;
-        }
-        
-        footer {
-            margin-top: 30px;
-            text-align: center;
-            font-size: 0.9em;
-            color: #999;
-        }
-        
-        @media (max-width: 900px) {
-            .main-container {
-                flex-direction: column;
-            }
-            
-            .input-panel, .preview-panel {
-                min-width: 100%;
-            }
-        }
+        :root { --bg-color: #1e1e1e; --text-color: #e0e0e0; --panel-bg: #2a2a2a; --secondary-bg: #3c3c3c; --border-color: #555; --primary-accent: #4a90e2; --success-color: #28a745; } body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; align-items: center; margin: 0; padding: 20px; } .main-container { display: flex; flex-wrap: wrap; gap: 20px; width: 100%; max-width: 1200px; } .input-panel { flex: 1; min-width: 450px; background-color: var(--panel-bg); border-radius: 10px; padding: 20px; } .preview-panel { flex: 1; min-width: 400px; background-color: var(--panel-bg); border-radius: 10px; padding: 20px; text-align: center; } h1, h2, h3 { color: var(--primary-accent); } .scene-group { margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); } label { display: block; margin-bottom: 5px; font-weight: bold; } input[type="text"], select { width: 100%; padding: 10px; box-sizing: border-box; background-color: var(--secondary-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 5px; } .media-buttons { display: flex; gap: 10px; margin-bottom: 10px; } .file-label { flex: 1; display: block; padding: 10px; background-color: var(--secondary-bg); border: 1px dashed var(--border-color); color: var(--text-color); border-radius: 5px; text-align: center; cursor: pointer; } .file-label.uploaded { background-color: var(--success-color); color: white; border-style: solid; font-weight: bold; } input[type="file"] { display: none; } #generate-button { width: 100%; padding: 15px; font-size: 1.2em; font-weight: bold; background-color: var(--success-color); color: white; border: none; border-radius: 5px; cursor: pointer; } #output-video { max-width: 100%; border-radius: 8px; margin-top: 15px; background-color: #000; } #progress-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); color: white; display: none; justify-content: center; align-items: center; flex-direction: column; z-index: 1000; text-align: center; } #progress-text { font-size: 1.5em; margin-bottom: 20px; } .loader { border: 8px solid #f3f3f3; border-radius: 50%; border-top: 8px solid var(--primary-accent); width: 60px; height: 60px; animation: spin 2s linear infinite; margin-bottom: 20px; } @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } } #progress-bar-container { width: 80%; max-width: 500px; height: 20px; background-color: #555; border-radius: 10px; overflow: hidden; display: none; } #progress-bar-fill { width: 0%; height: 100%; background-color: var(--primary-accent); border-radius: 10px; transition: width 0.2s ease-out; } #progress-percentage { margin-top: 10px; font-size: 1.2em; font-weight: bold; display: none; }
     </style>
 </head>
 <body>
@@ -267,17 +24,6 @@
 
     <div class="main-container">
         <div class="input-panel">
-            <div class="instructions">
-                <h3>Cara Penggunaan:</h3>
-                <ul>
-                    <li>Pilih media (video/GIF atau gambar) untuk setiap adegan</li>
-                    <li>Isi teks yang ingin ditampilkan pada setiap adegan</li>
-                    <li>Pilih musik latar yang diinginkan</li>
-                    <li>Klik "Generate & Export Video" untuk membuat video</li>
-                </ul>
-                <p>Pastikan menggunakan browser modern (Chrome, Firefox, Edge) untuk hasil terbaik.</p>
-            </div>
-
             <div class="scene-group">
                 <h3>Adegan 1: Hook (3 detik)</h3>
                 <div class="media-buttons">
@@ -322,9 +68,6 @@
                     <option value="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808f27883.mp3">Modern & Cool</option>
                 </select>
             </div>
-            
-            <div id="error-message" class="error-message"></div>
-            
             <button id="generate-button">🚀 Generate & Export Video</button>
         </div>
 
@@ -332,15 +75,8 @@
             <h2>Preview & Hasil</h2>
             <p>Video hasil generate akan muncul di sini.</p>
             <video id="output-video" controls></video>
-            <p id="download-help" style="display: none; margin-top: 10px; font-size: 0.9em;">
-                Jika video tidak otomatis terdownload, klik kanan pada video dan pilih "Save Video As".
-            </p>
         </div>
     </div>
-
-    <footer>
-        <p>E-Com Video Engine v2.5 &copy; 2023 - Gunakan dengan browser modern untuk hasil terbaik</p>
-    </footer>
 
     <script>
         const { createFFmpeg, fetchFile } = FFmpeg;
@@ -351,9 +87,6 @@
         const progressBarContainer = document.getElementById('progress-bar-container');
         const progressBarFill = document.getElementById('progress-bar-fill');
         const progressPercentage = document.getElementById('progress-percentage');
-        const errorMessage = document.getElementById('error-message');
-        const generateButton = document.getElementById('generate-button');
-        const downloadHelp = document.getElementById('download-help');
 
         const ffmpeg = createFFmpeg({
             log: true,
@@ -365,19 +98,7 @@
             corePath: "https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js",
         });
 
-        const scenes = [ 
-            { id: 'hook', duration: 3, mediaFile: null, isImage: false, labelElement: [document.getElementById('hook-media-label'), document.getElementById('hook-image-label')] }, 
-            { id: 'product', duration: 5, mediaFile: null, isImage: false, labelElement: [document.getElementById('product-media-label'), document.getElementById('product-image-label')] }, 
-            { id: 'cta', duration: 3, mediaFile: null, isImage: false, labelElement: [document.getElementById('cta-media-label'), document.getElementById('cta-image-label')] } 
-        ];
-        
-        function showError(message) {
-            errorMessage.textContent = message;
-            errorMessage.style.display = 'block';
-            setTimeout(() => {
-                errorMessage.style.display = 'none';
-            }, 5000);
-        }
+        const scenes = [ { id: 'hook', duration: 3, mediaFile: null, isImage: false, labelElement: [document.getElementById('hook-media-label'), document.getElementById('hook-image-label')] }, { id: 'product', duration: 5, mediaFile: null, isImage: false, labelElement: [document.getElementById('product-media-label'), document.getElementById('product-image-label')] }, { id: 'cta', duration: 3, mediaFile: null, isImage: false, labelElement: [document.getElementById('cta-media-label'), document.getElementById('cta-image-label')] } ];
         
         function setupEventListeners() { 
             scenes.forEach((scene, index) => { 
@@ -385,15 +106,6 @@
                 const imageInput = document.getElementById(`${scene.id}-image-input`); 
                 const handleFileSelect = (e, isImage) => { 
                     const file = e.target.files[0]; 
-                    if (!file) return;
-                    
-                    // Validasi ukuran file (maksimal 20MB)
-                    if (file.size > 20 * 1024 * 1024) {
-                        showError("Ukuran file terlalu besar. Maksimal 20MB.");
-                        e.target.value = '';
-                        return;
-                    }
-                    
                     scenes[index].mediaFile = file; 
                     scenes[index].isImage = isImage; 
                     scene.labelElement.forEach(label => {
@@ -402,144 +114,107 @@
                     }); 
                     const selectedLabel = isImage ? scene.labelElement[1] : scene.labelElement[0]; 
                     selectedLabel.classList.add('uploaded'); 
-                    selectedLabel.textContent = file.name.length > 20 ? file.name.substring(0, 17) + '...' : file.name; 
+                    selectedLabel.textContent = file.name; 
                 }; 
                 mediaInput.addEventListener('change', (e) => handleFileSelect(e, false)); 
                 imageInput.addEventListener('change', (e) => handleFileSelect(e, true)); 
             }); 
-            generateButton.addEventListener('click', generateVideo); 
+            document.getElementById('generate-button').addEventListener('click', generateVideo); 
         }
         
         async function generateVideo() {
             if (scenes.some(scene => !scene.mediaFile)) {
-                showError("Harap lengkapi media untuk semua adegan!");
+                alert("Harap lengkapi media untuk semua adegan!");
                 return;
             }
 
-            // Nonaktifkan tombol generate selama proses
-            generateButton.disabled = true;
             progressOverlay.style.display = 'flex';
             
-            try {
-                if (!ffmpeg.isLoaded()) {
-                    loadingSpinner.style.display = 'block';
-                    progressBarContainer.style.display = 'none';
-                    progressPercentage.style.display = 'none';
-                    progressText.textContent = "Memuat Mesin Render... (Mungkin butuh beberapa detik)";
-                    await ffmpeg.load();
-                }
-
+            if (!ffmpeg.isLoaded()) {
                 loadingSpinner.style.display = 'block';
                 progressBarContainer.style.display = 'none';
                 progressPercentage.style.display = 'none';
-                progressText.textContent = "Mempersiapkan File...";
-                
-                // Tulis file media ke memori FFmpeg
-                for (const scene of scenes) {
-                    await ffmpeg.FS('writeFile', scene.mediaFile.name, await fetchFile(scene.mediaFile));
-                }
-                
-                // Tulis file musik
-                const musicURL = document.getElementById('music-select').value;
-                progressText.textContent = "Mengunduh musik...";
-                await ffmpeg.FS('writeFile', 'music.mp3', await fetchFile(musicURL));
-
-                loadingSpinner.style.display = 'none';
-                progressBarContainer.style.display = 'block';
-                progressPercentage.style.display = 'block';
-                progressBarFill.style.width = '0%';
-                progressPercentage.textContent = '0%';
-                progressText.textContent = "Memproses Video...";
-
-                const protect = (str) => str.replace(/[:'[```]/g, '\\$&'); 
-                const texts = { 
-                    hook: protect(document.getElementById('hook-text').value), 
-                    product: protect(document.getElementById('product-text').value), 
-                    cta: protect(document.getElementById('cta-text').value) 
-                }; 
-                
-                const command = []; 
-                const filterComplex = []; 
-                const concatInputs = []; 
-                
-                scenes.forEach((scene, i) => { 
-                    if (scene.isImage) { 
-                        command.push('-loop', '1'); 
-                    } 
-                    command.push('-i', scene.mediaFile.name); 
-                    
-                    let inputStream = `[${i}:v]`; 
-                    let processedStream = `v${i}`; 
-                    
-                    let filterChain = ""; 
-                    if (scene.isImage) { 
-                        filterChain = `${inputStream}scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,setsar=1[t${i}];[t${i}]tpad=stop_duration=${scene.duration},zoompan=z='min(zoom+0.0015,1.5)':d=${scene.duration*25}:s=720x1280,setsar=1`; 
-                    } else { 
-                        filterChain = `${inputStream}scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,setsar=1,trim=duration=${scene.duration}`; 
-                    } 
-                    
-                    const text = texts[scene.id]; 
-                    const fontSize = scene.id === 'cta' ? 70 : 60; 
-                    const fontColor = scene.id === 'product' ? 'yellow' : 'white'; 
-                    const boxColor = scene.id === 'cta' ? 'red@0.8' : 'black@0.5'; 
-                    const yPos = scene.id === 'product' ? 'h*0.3' : 'h*0.7'; 
-                    
-                    filterChain += `,drawtext=text='${text}':fontsize=${fontSize}:fontcolor=${fontColor}:x=(w-text_w)/2:y=${yPos}:box=1:boxcolor=${boxColor}:boxborderw=10[${processedStream}]`; 
-                    
-                    filterComplex.push(filterChain); 
-                    concatInputs.push(`[${processedStream}]`); 
-                }); 
-                
-                command.push('-i', 'music.mp3'); 
-                const audioInputIndex = scenes.length; 
-                
-                filterComplex.push(`${concatInputs.join('')}concat=n=${scenes.length}:v=1:a=0[v]`); 
-                filterComplex.push(`[${audioInputIndex}:a]volume=0.4,atrim=0:11[a]`); 
-                
-                command.push('-filter_complex', filterComplex.join('; ')); 
-                command.push('-map', '[v]'); 
-                command.push('-map', '[a]'); 
-                command.push('-t', '11'); 
-                command.push('-c:v', 'libx264'); 
-                command.push('-preset', 'fast'); 
-                command.push('-c:a', 'aac'); 
-                command.push('-pix_fmt', 'yuv420p'); 
-                command.push('output.mp4'); 
-
-                console.log("Running FFmpeg command:", command.join(' '));
-                await ffmpeg.run(...command);
-                
-                progressText.textContent = "Selesai! Menyiapkan Hasil...";
-                const data = ffmpeg.FS('readFile', 'output.mp4');
-                const videoUrl = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
-                const videoElement = document.getElementById('output-video');
-                videoElement.src = videoUrl;
-                
-                // Tampilkan bantuan download
-                downloadHelp.style.display = 'block';
-                
-                // Coba download otomatis
-                try {
-                    const a = document.createElement('a');
-                    a.href = videoUrl;
-                    a.download = 'video_hasil_ecom.mp4';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                } catch (downloadError) {
-                    console.log("Download otomatis gagal, menggunakan fallback");
-                }
-                
-            } catch (error) {
-                console.error("Error during video generation:", error);
-                showError("Terjadi error saat membuat video: " + error.message);
-            } finally {
-                progressOverlay.style.display = 'none';
-                generateButton.disabled = false;
+                progressText.textContent = "Memuat Mesin Render...";
+                await ffmpeg.load();
             }
+
+            loadingSpinner.style.display = 'block';
+            progressBarContainer.style.display = 'none';
+            progressPercentage.style.display = 'none';
+            progressText.textContent = "Mempersiapkan File...";
+            
+            for (const scene of scenes) {
+                await ffmpeg.FS('writeFile', scene.mediaFile.name, await fetchFile(scene.mediaFile));
+            }
+            const musicURL = document.getElementById('music-select').value;
+            await ffmpeg.FS('writeFile', 'music.mp3', await fetchFile(musicURL));
+
+            loadingSpinner.style.display = 'none';
+            progressBarContainer.style.display = 'block';
+            progressPercentage.style.display = 'block';
+            progressBarFill.style.width = '0%';
+            progressPercentage.textContent = '0%';
+            progressText.textContent = "Memproses Video...";
+
+            const protect = (str) => str.replace(/[:'[```]/g, '\\$&'); 
+            const texts = { hook: protect(document.getElementById('hook-text').value), product: protect(document.getElementById('product-text').value), cta: protect(document.getElementById('cta-text').value), }; 
+            
+            const command = []; 
+            const filterComplex = []; 
+            const concatInputs = []; 
+            
+            scenes.forEach((scene, i) => { 
+                if (scene.isImage) { 
+                    command.push('-loop', '1'); 
+                } 
+                command.push('-i', scene.mediaFile.name); 
+                
+                let inputStream = `[${i}:v]`; 
+                let processedStream = `[v${i}_processed]`; 
+                
+                let filterChain = ""; 
+                if (scene.isImage) { 
+                    filterChain = `${inputStream}tpad=stop_duration=${scene.duration},zoompan=z='min(zoom+0.0015,1.5)':d=${scene.duration*25}:s=720x1280,setsar=1`; 
+                } else { 
+                    filterChain = `${inputStream}scale=720:1280,trim=duration=${scene.duration},setsar=1`; 
+                } 
+                
+                const text = texts[scene.id]; 
+                const fontSize = scene.id === 'cta' ? 70 : 60; 
+                const fontColor = scene.id === 'product' ? 'yellow' : 'white'; 
+                const boxColor = scene.id === 'cta' ? 'red@0.8' : 'black@0.5'; 
+                const yPos = scene.id === 'product' ? 'h*0.3' : 'h*0.7'; 
+                filterChain += `,drawtext=text='${text}':fontsize=${fontSize}:fontcolor=${fontColor}:x=(w-text_w)/2:y=${yPos}:box=1:boxcolor=${boxColor}:boxborderw=10`; 
+                
+                filterComplex.push(filterChain + processedStream); 
+                concatInputs.push(processedStream); 
+            }); 
+            
+            command.push('-i', 'music.mp3'); 
+            const audioInputIndex = scenes.length; 
+            
+            filterComplex.push(`${concatInputs.join('')}concat=n=${scenes.length}:v=1:a=0[v_out]`); 
+            filterComplex.push(`[${audioInputIndex}:a]volume=0.4[a_out]`); 
+            
+            command.push('-filter_complex', filterComplex.join(';')); 
+            command.push('-map', '[v_out]', '-map', '[a_out]'); 
+            
+            const totalDuration = scenes.reduce((sum, s) => sum + s.duration, 0); 
+            command.push('-t', totalDuration.toString()); 
+            command.push('-c:v', 'libx264', '-preset', 'ultrafast', '-c:a', 'aac', '-pix_fmt', 'yuv420p', 'output.mp4'); 
+
+            console.log("Running FFmpeg command:", command.join(' '));
+            await ffmpeg.run(...command);
+            
+            progressText.textContent = "Selesai! Menyiapkan Hasil...";
+            const data = ffmpeg.FS('readFile', 'output.mp4');
+            const videoUrl = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+            document.getElementById('output-video').src = videoUrl;
+            progressOverlay.style.display = 'none';
+
+            const a = document.createElement('a'); a.href = videoUrl; a.download = 'video_result_stable.mp4'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
         }
 
-        // Inisialisasi
         setupEventListeners();
     </script>
 </body>
