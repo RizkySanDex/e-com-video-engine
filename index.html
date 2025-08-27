@@ -1,293 +1,357 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>E-Com Video Engine v2.6 (Fix Progress)</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>E-Com Video Engine v3 (Stable COEP)</title>
+  <!-- FFmpeg WASM -->
   <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.2/dist/ffmpeg.min.js"></script>
   <style>
-    :root {
-      --bg-color: #1e1e1e;
-      --text-color: #e0e0e0;
-      --panel-bg: #2a2a2a;
-      --secondary-bg: #3c3c3c;
-      --border-color: #555;
-      --primary-accent: #4a90e2;
-      --success-color: #28a745;
+    :root{
+      --bg:#111;--fg:#eaeaea;--card:#1b1b1b;--muted:#2b2b2b;
+      --accent:#4a90e2;--ok:#18a058;--warn:#f0ad4e;--err:#e74c3c;
     }
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin: 0;
-      padding: 20px;
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    .wrap{max-width:1200px;margin:auto;padding:18px;display:grid;gap:18px;grid-template-columns:1.1fr .9fr}
+    @media(max-width:960px){.wrap{grid-template-columns:1fr}}
+    h1,h2,h3{color:var(--accent);margin:.2rem 0 .8rem}
+    .card{background:var(--card);border:1px solid #2a2a2a;border-radius:12px;padding:16px}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .file-label{flex:1;padding:10px;border:1px dashed #444;border-radius:8px;text-align:center;background:var(--muted);cursor:pointer}
+    .file-label.uploaded{background:var(--ok);color:#fff;border-style:solid;font-weight:600}
+    input[type=file]{display:none}
+    input[type=text],select{width:100%;padding:10px;border:1px solid #444;border-radius:8px;background:#131313;color:var(--fg)}
+    .btn{width:100%;padding:14px;border:0;border-radius:10px;background:var(--ok);color:#fff;font-size:1.05rem;font-weight:700;cursor:pointer}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    video{width:100%;border-radius:10px;background:#000}
+    .hint{opacity:.8;font-size:.9rem}
+    .progress-overlay{
+      position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;flex-direction:column;z-index:9999;color:#fff;text-align:center;padding:20px
     }
-    .main-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 20px;
-      width: 100%;
-      max-width: 1200px;
-    }
-    .input-panel, .preview-panel {
-      flex: 1;
-      min-width: 400px;
-      background-color: var(--panel-bg);
-      border-radius: 10px;
-      padding: 20px;
-    }
-    h1, h2, h3 { color: var(--primary-accent); }
-    .scene-group { margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); }
-    label { display: block; margin-bottom: 5px; font-weight: bold; }
-    input[type="text"], select {
-      width: 100%;
-      padding: 10px;
-      background-color: var(--secondary-bg);
-      color: var(--text-color);
-      border: 1px solid var(--border-color);
-      border-radius: 5px;
-    }
-    .media-buttons { display: flex; gap: 10px; margin-bottom: 10px; }
-    .file-label {
-      flex: 1;
-      padding: 10px;
-      background-color: var(--secondary-bg);
-      border: 1px dashed var(--border-color);
-      border-radius: 5px;
-      text-align: center;
-      cursor: pointer;
-    }
-    .file-label.uploaded { background-color: var(--success-color); color: #fff; font-weight: bold; }
-    input[type="file"] { display: none; }
-    #generate-button {
-      width: 100%; padding: 15px; font-size: 1.2em;
-      font-weight: bold; background-color: var(--success-color);
-      color: white; border: none; border-radius: 5px; cursor: pointer;
-    }
-    #output-video { max-width: 100%; border-radius: 8px; margin-top: 15px; background-color: #000; }
-    #progress-overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background-color: rgba(0,0,0,0.85); color: white;
-      display: none; justify-content: center; align-items: center;
-      flex-direction: column; z-index: 1000;
-    }
-    #progress-text { font-size: 1.3em; margin: 10px 0; }
-    #progress-bar-container {
-      width: 80%; max-width: 500px; height: 20px;
-      background-color: #444; border-radius: 10px; overflow: hidden;
-      margin-top: 15px;
-    }
-    #progress-bar-fill {
-      width: 0%; height: 100%; background-color: var(--primary-accent);
-      transition: width 0.2s ease-out;
-    }
+    .bar{width:min(520px,86vw);height:18px;background:#3a3a3a;border-radius:12px;overflow:hidden;margin-top:12px}
+    .fill{height:100%;width:0%;background:var(--accent);transition:width .2s ease}
+    .mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9rem;opacity:.9}
+    .pill{display:inline-block;padding:.2rem .55rem;border-radius:999px;background:#222;border:1px solid #333;margin:2px 0}
   </style>
 </head>
 <body>
-  <div id="progress-overlay">
-    <h2 id="progress-text">Mempersiapkan...</h2>
-    <div id="progress-bar-container">
-      <div id="progress-bar-fill"></div>
-    </div>
-    <p id="progress-percentage">0%</p>
+  <div class="progress-overlay" id="overlay">
+    <h2 id="ov-text">Mempersiapkan…</h2>
+    <div class="bar"><div class="fill" id="ov-fill"></div></div>
+    <div class="mono" id="ov-per">0%</div>
+    <div class="mono" id="ov-note" style="margin-top:10px;opacity:.8"></div>
   </div>
 
-  <h1>E-Com Video Engine v2.6</h1>
-  <p>Kombinasikan Video, GIF, dan Gambar untuk membuat video jualanmu!</p>
+  <div class="wrap">
+    <div class="card">
+      <h1>E-Com Video Engine v3</h1>
+      <p class="hint">Susun 3 adegan (Hook → Produk → CTA). Bisa pakai video/GIF <em>atau</em> gambar. Tambahkan teks overlay (opsional). Musik & font di-upload lokal agar aman untuk mode COEP.</p>
 
-  <div class="main-container">
-    <div class="input-panel">
-      <div class="scene-group">
+      <!-- SCENE 1 -->
+      <div class="card" style="margin-top:12px">
         <h3>Adegan 1: Hook (3 detik)</h3>
-        <div class="media-buttons">
-          <label for="hook-media-input" class="file-label" id="hook-media-label">Pilih Video/GIF</label>
-          <input type="file" id="hook-media-input" accept="video/*,image/gif">
-          <label for="hook-image-input" class="file-label" id="hook-image-label">Pilih Gambar</label>
-          <input type="file" id="hook-image-input" accept="image/jpeg,image/png">
+        <div class="row">
+          <label class="file-label" id="hook-v-label" for="hook-v">Pilih Video/GIF</label>
+          <input id="hook-v" type="file" accept="video/*,image/gif">
+          <label class="file-label" id="hook-i-label" for="hook-i">Pilih Gambar</label>
+          <input id="hook-i" type="file" accept="image/png,image/jpeg">
         </div>
-        <label for="hook-text">Teks Hook:</label>
-        <input type="text" id="hook-text" placeholder="Contoh: Botol minum gampang bocor?">
+        <label>Teks Hook (opsional)</label>
+        <input id="hook-text" type="text" placeholder="Contoh: Botol minum gampang bocor?">
       </div>
 
-      <div class="scene-group">
+      <!-- SCENE 2 -->
+      <div class="card">
         <h3>Adegan 2: Produk (5 detik)</h3>
-        <div class="media-buttons">
-          <label for="product-media-input" class="file-label" id="product-media-label">Pilih Video/GIF</label>
-          <input type="file" id="product-media-input" accept="video/*,image/gif">
-          <label for="product-image-input" class="file-label" id="product-image-label">Pilih Gambar</label>
-          <input type="file" id="product-image-input" accept="image/jpeg,image/png">
+        <div class="row">
+          <label class="file-label" id="prod-v-label" for="prod-v">Pilih Video/GIF</label>
+          <input id="prod-v" type="file" accept="video/*,image/gif">
+          <label class="file-label" id="prod-i-label" for="prod-i">Pilih Gambar</label>
+          <input id="prod-i" type="file" accept="image/png,image/jpeg">
         </div>
-        <label for="product-text">Teks Solusi:</label>
-        <input type="text" id="product-text" placeholder="Contoh: Pakai botol anti tumpah ini!">
+        <label>Teks Solusi (opsional)</label>
+        <input id="prod-text" type="text" placeholder="Contoh: Pakai botol anti tumpah ini!">
       </div>
 
-      <div class="scene-group">
+      <!-- SCENE 3 -->
+      <div class="card">
         <h3>Adegan 3: CTA (3 detik)</h3>
-        <div class="media-buttons">
-          <label for="cta-media-input" class="file-label" id="cta-media-label">Pilih Video/GIF</label>
-          <input type="file" id="cta-media-input" accept="video/*,image/gif">
-          <label for="cta-image-input" class="file-label" id="cta-image-label">Pilih Gambar</label>
-          <input type="file" id="cta-image-input" accept="image/jpeg,image/png">
+        <div class="row">
+          <label class="file-label" id="cta-v-label" for="cta-v">Pilih Video/GIF</label>
+          <input id="cta-v" type="file" accept="video/*,image/gif">
+          <label class="file-label" id="cta-i-label" for="cta-i">Pilih Gambar</label>
+          <input id="cta-i" type="file" accept="image/png,image/jpeg">
         </div>
-        <label for="cta-text">Teks Call to Action:</label>
-        <input type="text" id="cta-text" placeholder="Contoh: Cek Keranjang Kuning!">
+        <label>Teks CTA (opsional)</label>
+        <input id="cta-text" type="text" placeholder="Contoh: Cek Keranjang Kuning!">
       </div>
 
-      <div class="input-group">
-        <label for="music-select">Musik Latar (Bebas Copyright)</label>
-        <select id="music-select">
-          <option value="https://cdn.pixabay.com/download/audio/2022/08/04/audio_2d02518e0a.mp3">Upbeat & Happy</option>
-          <option value="https://cdn.pixabay.com/download/audio/2022/11/21/audio_a1bf8935a8.mp3">Chill Lofi</option>
-          <option value="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808f27883.mp3">Modern & Cool</option>
-        </select>
+      <!-- GLOBAL: FONT & MUSIC -->
+      <div class="card">
+        <h3>Font & Musik (opsional tapi direkomendasikan)</h3>
+        <div class="row">
+          <label class="file-label" id="font-label" for="font-file">Upload Font TTF/OTF untuk teks</label>
+          <input id="font-file" type="file" accept=".ttf,.otf">
+        </div>
+        <div class="row">
+          <label class="file-label" id="music-label" for="music-file">Upload Musik (MP3/M4A/WAV/OGG)</label>
+          <input id="music-file" type="file" accept="audio/*">
+        </div>
+        <div class="hint">Jika tidak upload musik, sistem akan membuat audio hening (silent) sepanjang durasi.</div>
       </div>
-      <button id="generate-button">🚀 Generate & Export Video</button>
+
+      <button class="btn" id="generate">🚀 Generate & Export Video</button>
+      <div class="hint" style="margin-top:10px">
+        Tip: untuk teks overlay, upload font (contoh: <span class="pill">Inter-Regular.ttf</span>). Tanpa font, <code>drawtext</code> bisa gagal di WebAssembly.
+      </div>
     </div>
 
-    <div class="preview-panel">
+    <div class="card">
       <h2>Preview & Hasil</h2>
-      <video id="output-video" controls></video>
+      <video id="out" controls></video>
+      <div class="mono" style="margin-top:12px">
+        Log singkat: cek DevTools Console untuk detail error FFmpeg jika render gagal.
+      </div>
     </div>
   </div>
 
   <script>
     const { createFFmpeg, fetchFile } = FFmpeg;
 
-    const progressOverlay = document.getElementById('progress-overlay');
-    const progressText = document.getElementById('progress-text');
-    const progressBarFill = document.getElementById('progress-bar-fill');
-    const progressPercentage = document.getElementById('progress-percentage');
+    // UI refs
+    const overlay = document.getElementById('overlay');
+    const ovText = document.getElementById('ov-text');
+    const ovFill = document.getElementById('ov-fill');
+    const ovPer  = document.getElementById('ov-per');
+    const ovNote = document.getElementById('ov-note');
+    const outVideo = document.getElementById('out');
+    const btn = document.getElementById('generate');
 
+    // Scene state
+    const scenes = [
+      { id:'hook',   dur:3, input:null, isImage:false, textEl: 'hook-text',  v:'hook-v',  i:'hook-i',  vLabel:'hook-v-label',  iLabel:'hook-i-label' },
+      { id:'product',dur:5, input:null, isImage:false, textEl: 'prod-text',  v:'prod-v',  i:'prod-i',  vLabel:'prod-v-label',  iLabel:'prod-i-label' },
+      { id:'cta',    dur:3, input:null, isImage:false, textEl: 'cta-text',   v:'cta-v',   i:'cta-i',   vLabel:'cta-v-label',   iLabel:'cta-i-label' }
+    ];
+
+    // File selectors
+    function wireFileLabel(fileId, labelId, markAs){
+      const input = document.getElementById(fileId);
+      const label = document.getElementById(labelId);
+      input.addEventListener('change', e=>{
+        if(!e.target.files[0]) return;
+        label.classList.add('uploaded');
+        label.textContent = e.target.files[0].name;
+        markAs(e.target.files[0]);
+      });
+    }
+
+    // Attach listeners per scene
+    scenes.forEach((s, idx)=>{
+      wireFileLabel(s.v, s.vLabel, (f)=>{ scenes[idx].input=f; scenes[idx].isImage = f.type.startsWith('image/'); });
+      wireFileLabel(s.i, s.iLabel, (f)=>{ scenes[idx].input=f; scenes[idx].isImage = true; });
+    });
+
+    // Font & music inputs
+    const fontInput  = document.getElementById('font-file');
+    const musicInput = document.getElementById('music-file');
+    wireFileLabel('font-file','font-label', ()=>{});
+    wireFileLabel('music-file','music-label', ()=>{});
+
+    // FFmpeg instance
     const ffmpeg = createFFmpeg({
       log: true,
-      progress: ({ ratio }) => {
-        const percentage = Math.min(100, Math.round(ratio * 100));
-        progressBarFill.style.width = percentage + "%";
-        progressPercentage.textContent = percentage + "%";
-        progressText.textContent = "Rendering Video... " + percentage + "%";
+      progress: ({ratio})=>{
+        const p = Math.max(0, Math.min(100, Math.round(ratio*100)));
+        ovFill.style.width = p + '%';
+        ovPer.textContent = p + '%';
+        ovText.textContent = 'Rendering Video… ' + p + '%';
       },
       corePath: "https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js",
     });
 
-    const scenes = [
-      { id: 'hook', duration: 3, mediaFile: null, isImage: false,
-        labelElement: [document.getElementById('hook-media-label'), document.getElementById('hook-image-label')] },
-      { id: 'product', duration: 5, mediaFile: null, isImage: false,
-        labelElement: [document.getElementById('product-media-label'), document.getElementById('product-image-label')] },
-      { id: 'cta', duration: 3, mediaFile: null, isImage: false,
-        labelElement: [document.getElementById('cta-media-label'), document.getElementById('cta-image-label')] }
-    ];
-
-    function setupEventListeners() {
-      scenes.forEach((scene, index) => {
-        const mediaInput = document.getElementById(`${scene.id}-media-input`);
-        const imageInput = document.getElementById(`${scene.id}-image-input`);
-
-        const handleFileSelect = (e, isImage) => {
-          const file = e.target.files[0];
-          if (!file) return;
-          scenes[index].mediaFile = file;
-          scenes[index].isImage = isImage;
-          scene.labelElement.forEach(label => {
-            label.classList.remove('uploaded');
-            label.textContent = label.id.includes('image') ? 'Pilih Gambar' : 'Pilih Video/GIF';
-          });
-          const selectedLabel = isImage ? scene.labelElement[1] : scene.labelElement[0];
-          selectedLabel.classList.add('uploaded');
-          selectedLabel.textContent = file.name;
-        };
-        mediaInput.addEventListener('change', (e) => handleFileSelect(e, false));
-        imageInput.addEventListener('change', (e) => handleFileSelect(e, true));
-      });
-      document.getElementById('generate-button').addEventListener('click', generateVideo);
+    function sanitizeText(s){
+      // Escape chars that break drawtext
+      return (s||'').replace(/[:'\\\[\]\n\r]/g, m=>'\\'+m);
     }
 
-    async function generateVideo() {
-      if (scenes.some(scene => !scene.mediaFile)) {
-        alert("Harap lengkapi media untuk semua adegan!");
-        return;
-      }
+    function extOf(name, fallback){
+      const dot = (name||'').lastIndexOf('.');
+      return dot>0 ? name.slice(dot+1).toLowerCase() : (fallback||'dat');
+    }
 
-      progressOverlay.style.display = 'flex';
-      progressText.textContent = "Memuat Mesin Render...";
-      if (!ffmpeg.isLoaded()) {
-        await ffmpeg.load();
-      }
+    btn.addEventListener('click', generate);
 
-      // tulis semua file input ke FS
-      for (const scene of scenes) {
-        await ffmpeg.FS('writeFile', scene.mediaFile.name, await fetchFile(scene.mediaFile));
-      }
-      const musicURL = document.getElementById('music-select').value;
-      await ffmpeg.FS('writeFile', 'music.mp3', await fetchFile(musicURL));
-
-      const protect = (str) => str.replace(/[:'[\\]]/g, '\\$&');
-      const texts = {
-        hook: protect(document.getElementById('hook-text').value),
-        product: protect(document.getElementById('product-text').value),
-        cta: protect(document.getElementById('cta-text').value),
-      };
-
-      const command = [];
-      const filterComplex = [];
-      const concatInputs = [];
-
-      scenes.forEach((scene, i) => {
-        if (scene.isImage) { command.push('-loop', '1'); }
-        command.push('-i', scene.mediaFile.name);
-
-        let inputStream = `[${i}:v]`;
-        let processedStream = `[v${i}_processed]`;
-
-        let filterChain = "";
-        if (scene.isImage) {
-          filterChain = `${inputStream}tpad=stop_duration=${scene.duration},zoompan=z='min(zoom+0.0015,1.5)':d=${scene.duration*25}:s=720x1280,setsar=1`;
-        } else {
-          filterChain = `${inputStream}scale=720:1280,trim=duration=${scene.duration},setsar=1`;
+    async function generate(){
+      try{
+        // Basic validation
+        if (scenes.some(s=>!s.input)) {
+          alert('Harap lengkapi media untuk semua adegan (video/GIF atau gambar).');
+          return;
         }
 
-        const text = texts[scene.id];
-        const fontSize = scene.id === 'cta' ? 70 : 60;
-        const fontColor = scene.id === 'product' ? 'yellow' : 'white';
-        const boxColor = scene.id === 'cta' ? 'red@0.8' : 'black@0.5';
-        const yPos = scene.id === 'product' ? 'h*0.3' : 'h*0.7';
-        filterChain += `,drawtext=text='${text}':fontsize=${fontSize}:fontcolor=${fontColor}:x=(w-text_w)/2:y=${yPos}:box=1:boxcolor=${boxColor}:boxborderw=10`;
+        overlay.style.display='flex';
+        ovText.textContent = 'Memuat mesin render…';
+        ovPer.textContent = '0%';
+        ovFill.style.width = '0%';
+        ovNote.textContent = '';
 
-        filterComplex.push(filterChain + processedStream);
-        concatInputs.push(processedStream);
-      });
+        if(!ffmpeg.isLoaded()){
+          await ffmpeg.load();
+        }
 
-      command.push('-i', 'music.mp3');
-      const audioInputIndex = scenes.length;
+        // Write inputs to FS with fixed safe names
+        for (let i=0;i<scenes.length;i++){
+          const s = scenes[i];
+          const safeName = `scene${i}.${s.isImage ? extOf(s.input.name,'png') : extOf(s.input.name,'mp4')}`;
+          s.fsName = safeName;
+          ffmpeg.FS('writeFile', safeName, await fetchFile(s.input));
+        }
 
-      filterComplex.push(`${concatInputs.join('')}concat=n=${scenes.length}:v=1:a=0[v_out]`);
-      filterComplex.push(`[${audioInputIndex}:a]volume=0.4[a_out]`);
+        // Write font if provided
+        let fontPath = null;
+        if (fontInput.files && fontInput.files[0]) {
+          const fext = extOf(fontInput.files[0].name,'ttf');
+          fontPath = `font.${fext}`;
+          ffmpeg.FS('writeFile', fontPath, await fetchFile(fontInput.files[0]));
+        }
 
-      command.push('-filter_complex', filterComplex.join(';'));
-      command.push('-map', '[v_out]', '-map', '[a_out]');
+        // Music: write if provided, else we'll synthesize silence
+        let hasMusic = false;
+        if (musicInput.files && musicInput.files[0]) {
+          ffmpeg.FS('writeFile', 'music.input', await fetchFile(musicInput.files[0]));
+          hasMusic = true;
+        }
 
-      const totalDuration = scenes.reduce((sum, s) => sum + s.duration, 0);
-      command.push('-t', totalDuration.toString());
-      command.push('-c:v', 'libx264', '-preset', 'ultrafast', '-c:a', 'aac', '-pix_fmt', 'yuv420p', 'output.mp4');
+        // Prepare filter graph
+        const filterParts = [];
+        const concatVidRefs = [];
 
-      console.log("Running FFmpeg:", command.join(' '));
-      await ffmpeg.run(...command);
+        for (let i=0;i<scenes.length;i++){
+          const s = scenes[i];
+          const inV = `[${i}:v]`;
+          const outV = `[v${i}]`;
 
-      progressText.textContent = "Selesai! Menyiapkan Hasil...";
-      const data = ffmpeg.FS('readFile', 'output.mp4');
-      const videoUrl = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
-      document.getElementById('output-video').src = videoUrl;
-      progressOverlay.style.display = 'none';
+          // For images: loop + Ken Burns zoom; For video: scale & trim
+          if (s.isImage){
+            filterParts.push(
+              `${inV}tpad=stop_duration=${s.dur},` +
+              `zoompan=z='min(zoom+0.0018,1.5)':d=${s.dur*30}:s=720x1280:fps=30,setsar=1${outV}`
+            );
+          }else{
+            filterParts.push(
+              `${inV}scale=720:1280:force_original_aspect_ratio=decrease,`+
+              `pad=720:1280:(ow-iw)/2:(oh-ih)/2:black,`+
+              `trim=duration=${s.dur},setsar=1,fps=30${outV}`
+            );
+          }
 
-      const a = document.createElement('a');
-      a.href = videoUrl; a.download = 'video_result.mp4';
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          // Draw text if any AND font available
+          const rawText = document.getElementById(s.textEl).value.trim();
+          if (rawText && fontPath){
+            const t = sanitizeText(rawText);
+            const fontSize = (s.id==='cta')? 60 : 52;
+            const fontColor = (s.id==='product')? 'yellow' : 'white';
+            const boxColor  = (s.id==='cta')? 'red@0.8'  : 'black@0.55';
+            const yPos      = (s.id==='product')? 'h*0.28' : 'h*0.78';
+
+            // Apply drawtext to previous outV -> new labeled stream
+            const afterTxt = `[v${i}t]`;
+            filterParts.push(
+              `${outV}drawtext=fontfile=${fontPath}:text='${t}':`+
+              `fontsize=${fontSize}:fontcolor=${fontColor}:`+
+              `x=(w-text_w)/2:y=${yPos}:box=1:boxcolor=${boxColor}:boxborderw=12${afterTxt}`
+            );
+            concatVidRefs.push(afterTxt);
+          } else {
+            // If no text or no font: use the processed clip as is
+            concatVidRefs.push(outV);
+          }
+        }
+
+        // Audio chain
+        // If music provided: [A] -> apad -> atrim=total
+        // else: synthesize silence using anullsrc
+        const totalDur = scenes.reduce((a,b)=>a+b.dur,0);
+        if (hasMusic){
+          filterParts.push(`[${scenes.length}:a]apad=pad_dur=${totalDur},atrim=0:${totalDur}[aout]`);
+        }else{
+          // Use lavfi to generate silent audio (mono 48k)
+          // Note: needs -f lavfi & -t with separate input; we'll add as extra input
+          // Create a silent track via filter_complex
+          filterParts.push(`anullsrc=r=48000:cl=stereo,atrim=0:${totalDur}[aout]`);
+        }
+
+        // Concat videos
+        filterParts.push(`${concatVidRefs.join('')}concat=n=${scenes.length}:v=1:a=0[vout]`);
+
+        // Build command
+        const cmd = [];
+
+        // Push video/image inputs
+        for (let i=0;i<scenes.length;i++){
+          const s = scenes[i];
+          if (s.isImage) cmd.push('-loop','1');
+          cmd.push('-i', s.fsName);
+        }
+
+        // If music: add as normal input, else we'll rely on generated aout
+        if (hasMusic) {
+          cmd.push('-i','music.input');
+        }
+
+        // If no music, we still can create [aout] in filter_complex from anullsrc (no extra -i)
+        // Compose filter
+        const fc = filterParts.join(';');
+
+        // Because we used anullsrc when no music, we must prefix that with -f lavfi as a separate input
+        // But we already embedded it inside filter_complex (without extra input) — valid in latest ffmpeg.
+        // So just run one filter_complex.
+
+        cmd.push('-filter_complex', fc);
+        cmd.push('-map','[vout]','-map','[aout]');
+
+        // Encoding & container
+        cmd.push('-t', String(totalDur));
+        cmd.push('-c:v','libx264','-preset','ultrafast','-pix_fmt','yuv420p');
+        cmd.push('-c:a','aac','-b:a','128k');
+        cmd.push('-movflags','+faststart');
+        cmd.push('-y','output.mp4');
+
+        // Notes for overlay
+        ovText.textContent = 'Memproses Video…';
+        ovNote.textContent = 'Jika macet di 0%, tunggu sampai core FFmpeg selesai diunduh.';
+
+        // Run
+        console.log('Running FFmpeg:', cmd.join(' '));
+        await ffmpeg.run(...cmd);
+
+        // Check FS
+        const files = ffmpeg.FS('readdir','/');
+        console.log('FS root:', files);
+
+        // Read output
+        const data = ffmpeg.FS('readFile','output.mp4');
+        const url = URL.createObjectURL(new Blob([data.buffer], { type:'video/mp4' }));
+        outVideo.src = url;
+
+        overlay.style.display='none';
+
+        // Auto-download
+        const a = document.createElement('a');
+        a.href = url; a.download = 'ecom-video.mp4';
+        document.body.appendChild(a); a.click(); a.remove();
+
+      }catch(err){
+        console.error('FFmpeg error:', err);
+        ovText.textContent = 'Gagal Render';
+        ovNote.textContent = 'Cek Console (DevTools) untuk detail error. Umumnya: font tidak diupload atau filter salah.';
+        ovPer.textContent = '—';
+        ovFill.style.width = '0%';
+        setTimeout(()=>{ overlay.style.display='none'; }, 2500);
+      }
     }
-
-    setupEventListeners();
   </script>
 </body>
 </html>
